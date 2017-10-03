@@ -2,6 +2,8 @@
 
 namespace IpApi;
 
+use InvalidArgumentException;
+
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\TransferException;
 
@@ -35,9 +37,43 @@ class Client
     public function getInfo(string $ip)
     {
         try {
-            $decoded = $this->getDecodedResponse($ip);
+            $response = $this->httpClient->request('GET', "/json/$ip");
+            $data     = json_decode($response->getBody()->getContents(), true);
 
-            return IpInfo::buildFromArray($decoded);
+            return IpInfo::buildFromArray($data);
+        } catch (TransferException $ex) {
+            throw new IpInfoException($ex->getMessage(), $ex->getCode());
+        }
+    }
+
+
+    /**
+     * @param array $ips
+     *
+     * @return array
+     * @throws InvalidArgumentException
+     * @throws IpInfoException
+     */
+    public function batchInfo(array $ips)
+    {
+        if (count($ips) > 100) {
+            throw new InvalidArgumentException('Too many ips in one request');
+        }
+
+        $payload = [];
+        foreach ($ips as $ip) {
+            $payload[] = ['query' => $ip];
+        }
+
+        try {
+            $response = $this->httpClient->request('POST', "/batch", ['body' => json_encode($payload)]);
+            $data     = json_decode($response->getBody()->getContents(), true);
+            $return   = [];
+            foreach ($data as $item) {
+                $return[] = IpInfo::buildFromArray($item);
+            }
+
+            return $return;
         } catch (TransferException $ex) {
             throw new IpInfoException($ex->getMessage(), $ex->getCode());
         }
@@ -52,7 +88,9 @@ class Client
     public function getAsArray(string $ip): array
     {
         try {
-            return $decoded = $this->getDecodedResponse($ip);
+            $response = $this->httpClient->request('GET', "/json/$ip");
+
+            return json_decode($response->getBody()->getContents(), true);
         } catch (TransferException $ex) {
             throw new IpInfoException($ex->getMessage(), $ex->getCode());
         }
@@ -64,17 +102,5 @@ class Client
     public function setHttpClient(HttpClient $httpClient)
     {
         $this->httpClient = $httpClient;
-    }
-
-    /**
-     * @param string $ip
-     *
-     * @return array
-     */
-    private function getDecodedResponse(string $ip): array
-    {
-        $response = $this->httpClient->request('GET', "/json/$ip");
-
-        return json_decode($response->getBody()->getContents(), true);
     }
 }
