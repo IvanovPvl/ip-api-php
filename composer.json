@@ -1,6 +1,7 @@
 {
     "name": "ivanovpvl/ip-api-php",
     "description": "Api client for ip-api.com",
+    "keywords": ["ip-api", "ip"],
     "type": "library",
     "license": "MIT",
     "authors": [
