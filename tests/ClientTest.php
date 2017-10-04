@@ -1,64 +1,83 @@
 <?php
 
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
-use PHPUnit\Framework\TestCase;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\Client as HttpClient;
+namespace Tests;
 
-use IpApi\Client;
+use PHPUnit\Framework\TestCase;
+
+use GuzzleHttp\{
+    HandlerStack,
+    Psr7\Response,
+    Handler\MockHandler,
+    Client as HttpClient
+};
+
+use IpApi\{
+    Client,
+    IpInfo
+};
 
 /**
  * Class ClientTest
  */
 class ClientTest extends TestCase
 {
-    public function testSuccess(): void
+    /**
+     * @test
+     */
+    public function success(): void
     {
-        $client = $this->setupClient();
+        $mockedData = Factory::getSuccessData(1);
+        $client = $this->setupClient($mockedData[0]);
         $info   = $client->getInfo('8.8.8.8');
 
-        $mockedData = $this->getMockSuccessData();
-        $this->assertEquals($mockedData['as'], $info->getAs());
-        $this->assertEquals($mockedData['city'], $info->getCity());
-        $this->assertEquals($mockedData['country'], $info->getCountry());
-        $this->assertEquals($mockedData['countryCode'], $info->getCountryCode());
-        $this->assertEquals($mockedData['isp'], $info->getIsp());
-        $this->assertEquals($mockedData['lat'], $info->getLat());
-        $this->assertEquals($mockedData['lon'], $info->getLon());
-        $this->assertEquals($mockedData['org'], $info->getOrg());
-        $this->assertEquals($mockedData['query'], $info->getQuery());
-        $this->assertEquals($mockedData['region'], $info->getRegion());
-        $this->assertEquals($mockedData['regionName'], $info->getRegionName());
-        $this->assertEquals($mockedData['status'], $info->getStatus());
-        $this->assertEquals($mockedData['timezone'], $info->getTimezone());
-        $this->assertEquals($mockedData['zip'], $info->getZip());
+        $this->assertEquals($mockedData[0]['as'], $info->getAs());
+        $this->assertEquals($mockedData[0]['city'], $info->getCity());
+        $this->assertEquals($mockedData[0]['country'], $info->getCountry());
+        $this->assertEquals($mockedData[0]['countryCode'], $info->getCountryCode());
+        $this->assertEquals($mockedData[0]['isp'], $info->getIsp());
+        $this->assertEquals($mockedData[0]['lat'], $info->getLat());
+        $this->assertEquals($mockedData[0]['lon'], $info->getLon());
+        $this->assertEquals($mockedData[0]['org'], $info->getOrg());
+        $this->assertEquals($mockedData[0]['query'], $info->getQuery());
+        $this->assertEquals($mockedData[0]['region'], $info->getRegion());
+        $this->assertEquals($mockedData[0]['regionName'], $info->getRegionName());
+        $this->assertEquals($mockedData[0]['status'], $info->getStatus());
+        $this->assertEquals($mockedData[0]['timezone'], $info->getTimezone());
+        $this->assertEquals($mockedData[0]['zip'], $info->getZip());
     }
 
-    private function getMockSuccessData(): array
+    /**
+     * @test
+     */
+    public function batch(): void
     {
-        return [
-            'as'          => 'AS15169 Google Inc.',
-            'zip'         => '',
-            'isp'         => 'Google',
-            'lat'         => '37.4229',
-            'lon'         => '-122.085',
-            'org'         => 'Google',
-            'city'        => 'Mountain View',
-            'query'       => '8.8.8.8',
-            'region'      => 'CA',
-            'status'      => 'success',
-            'country'     => 'United Sates',
-            'timezone'    => 'America/Los_Angeles',
-            'regionName'  => 'California',
-            'countryCode' => 'US',
-        ];
+        $mockedData = Factory::getSuccessData(1);
+        $client = $this->setupClient($mockedData);
+
+        /** @var IpInfo[] $result */
+        $result   = $client->batchInfo(['8.8.8.8', '8.8.8.9']);
+        foreach ($result as $i => $info) {
+            $this->assertEquals($mockedData[$i]['as'], $info->getAs());
+            $this->assertEquals($mockedData[$i]['city'], $info->getCity());
+            $this->assertEquals($mockedData[$i]['country'], $info->getCountry());
+            $this->assertEquals($mockedData[$i]['countryCode'], $info->getCountryCode());
+            $this->assertEquals($mockedData[$i]['isp'], $info->getIsp());
+            $this->assertEquals($mockedData[$i]['lat'], $info->getLat());
+            $this->assertEquals($mockedData[$i]['lon'], $info->getLon());
+            $this->assertEquals($mockedData[$i]['org'], $info->getOrg());
+            $this->assertEquals($mockedData[$i]['query'], $info->getQuery());
+            $this->assertEquals($mockedData[$i]['region'], $info->getRegion());
+            $this->assertEquals($mockedData[$i]['regionName'], $info->getRegionName());
+            $this->assertEquals($mockedData[$i]['status'], $info->getStatus());
+            $this->assertEquals($mockedData[$i]['timezone'], $info->getTimezone());
+            $this->assertEquals($mockedData[$i]['zip'], $info->getZip());
+        }
     }
 
-    private function setupClient(): Client
+    private function setupClient(array $mockedData): Client
     {
         $mockClient = new MockHandler([
-            new Response(200, [], json_encode($this->getMockSuccessData()))
+            new Response(200, [], json_encode($mockedData))
         ]);
         $handler    = HandlerStack::create($mockClient);
         $httpClient = new HttpClient(['handler' => $handler]);
